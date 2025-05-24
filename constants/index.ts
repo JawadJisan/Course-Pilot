@@ -163,12 +163,13 @@ export const interviewer: CreateAssistantDTO = {
     "Hello {{userName}}! Thank you for taking the time to speak with me today about the {{courseName}} position. I'm excited to learn more about your experience and qualifications.",
   transcriber: {
     provider: "deepgram",
-    model: "nova-2",
+    model: "nova-3",
     language: "en",
   },
   voice: {
     provider: "11labs",
-    voiceId: "sarah",
+    // voiceId: "sarah",
+    voiceId: "2BJW5coyhAzSr8STdHbE",
     stability: 0.4,
     similarityBoost: 0.8,
     speed: 0.9,

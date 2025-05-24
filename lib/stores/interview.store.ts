@@ -7,17 +7,17 @@ export const useInterviewStore = create((set, get) => ({
   currentInterview: null,
   status: null,
   loading: false,
+  generateInterviewLoading: false,
   error: null,
 
   generateInterview: async (courseId) => {
-    set({ loading: true, error: null });
+    set({ generateInterviewLoading: true, error: null });
     try {
       const { data } = await api.post("/interviews/generate", { courseId });
       console.log("Generated interview data:", data);
       set({
         currentInterview: data.data,
-        interviews: [data.data, ...get().interviews],
-        loading: false,
+        generateInterviewLoading: false,
       });
       return data.data;
     } catch (error) {
@@ -27,12 +27,12 @@ export const useInterviewStore = create((set, get) => ({
           error: `Retake available on ${new Date(
             error.response.data.retakeDate
           ).toLocaleDateString()}`,
-          loading: false,
+          generateInterviewLoading: false,
         });
       } else {
         set({
           error: error instanceof Error ? error.message : "Generation failed",
-          loading: false,
+          generateInterviewLoading: false,
         });
       }
     }

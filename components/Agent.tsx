@@ -11,6 +11,8 @@ import { interviewer } from "@/constants";
 import { useInterviewStore } from "@/lib/stores/interview.store";
 import { useFeedbackStore } from "@/lib/stores/feedback.store";
 import { toast } from "sonner";
+import Lottie from "lottie-react";
+import { tr } from "date-fns/locale";
 
 enum CallStatus {
   INACTIVE = "INACTIVE",
@@ -30,6 +32,8 @@ interface AgentProps {
   interviewId?: string;
   profileImage?: string;
   courseId?: string;
+  courseName?: string;
+  mode?: "new" | "resume" | "retake" | "review";
 }
 
 const Agent = ({
@@ -38,9 +42,16 @@ const Agent = ({
   interviewId,
   profileImage = "/placeholder.svg",
   courseId,
+  courseName = "This Course", // Default fallback
+  mode = "new",
 }: AgentProps) => {
   const router = useRouter();
-  const { generateInterview, currentInterview } = useInterviewStore();
+  const {
+    generateInterview,
+    currentInterview,
+    generateInterviewLoading,
+    error: interviewError,
+  } = useInterviewStore();
   const { generateFeedback } = useFeedbackStore();
 
   const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
@@ -49,12 +60,20 @@ const Agent = ({
   const [lastMessage, setLastMessage] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 
+  const interviewType = {
+    new: "Starting New Interview",
+    resume: "Resuming Interview",
+    retake: "Retaking Interview",
+    review: "Reviewing Previous Attempt",
+  }[mode];
+
   const handleError = (error: Error | string) => {
     console.error("Call Error:", error);
-    setError(typeof error === "string" ? error : error.message);
+    const errorMessage = typeof error === "string" ? error : error.message;
+    setError(errorMessage);
     setCallStatus(CallStatus.INACTIVE);
     vapi.stop();
-    toast.error("Interview Error", { description: error.toString() });
+    toast.error("Interview Error", { description: errorMessage });
   };
 
   useEffect(() => {
@@ -102,8 +121,6 @@ const Agent = ({
     const handleFinishInterview = async () => {
       if (callStatus === CallStatus.FINISHED && currentInterview?.id) {
         console.log("interview finshed");
-        console.log("transcript messages:", messages);
-        console.log("type of messages:", typeof messages);
 
         // Convert messages to plain JavaScript array
         const transcript = messages.map((msg) => ({
@@ -122,9 +139,7 @@ const Agent = ({
             transcript: transcript,
           });
 
-          router.push(
-            `/interviews/${courseId}/feedback/${feedbackRes.id}`
-          );
+          router.push(`/interviews/${courseId}/feedback/${feedbackRes.id}`);
         } catch (error) {
           handleError(
             error instanceof Error
@@ -142,9 +157,10 @@ const Agent = ({
     try {
       setCallStatus(CallStatus.CONNECTING);
       setError(null);
+      toast.info("Preparing interview session...");
 
       if (!courseId || !userId) {
-        throw new Error("Missing required parameters");
+        toast.error("Missing required parameters");
       }
 
       const interview = await generateInterview(courseId);
@@ -152,6 +168,16 @@ const Agent = ({
       if (!interview?.questions) {
         toast.error("Failed to generate interview questions");
       }
+
+      toast.success("Session ready! Starting interview...");
+
+      const sampleQuestions = [
+        "What is the difference between let, const, and var in JavaScript?",
+        "Explain how closures work in JavaScript",
+        "What is the event loop and how does it work?",
+        "How does 'this' keyword work in JavaScript?",
+        "Explain the difference between == and ===",
+      ];
 
       const formattedQuestions = interview.questions
         .map((q: string) => `- ${q}`)
@@ -161,7 +187,7 @@ const Agent = ({
         variableValues: {
           questions: formattedQuestions,
           userName: userName,
-          courseName: interview.courseName || "This Course",
+          courseName: courseName,
         },
         clientMessages: ["transcript"],
         serverMessages: [],
@@ -198,9 +224,36 @@ const Agent = ({
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8">
+    <div className="max-w-6xl mx-auto space-y-2 relative">
+      {/* Loading overlay */}
+      {generateInterviewLoading && (
+        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center rounded-lg">
+          {/* <div className="w-48 h-48">
+            <Lottie animationData={loadingAnimation} loop={true} />
+          </div> */}
+          <div className="w-32 h-32 mb-4">
+            <div className="animate-spin rounded-full h-24 w-24 border-4 border-primary border-t-transparent mx-auto"></div>
+          </div>
+          <p className="text-lg font-semibold text-muted-foreground">
+            {mode === "resume"
+              ? "Loading Session..."
+              : "Preparing Questions..."}
+          </p>
+        </div>
+      )}
+
       {/* Status Header */}
       <div className="flex justify-center">{getStatusBadge()}</div>
+
+      <div className="text-center space-y-2">
+        <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+          {interviewType}
+        </h2>
+        <p className="text-lg text-muted-foreground">{courseName} </p>
+        <p className="text-sm text-muted-foreground/30">
+          {mode === "review" ? "Previous Attempt" : "Current Session"}
+        </p>
+      </div>
 
       {/* Main Interview Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
@@ -310,11 +363,13 @@ const Agent = ({
       )}
 
       {/* Call Control Button */}
-      <div className="flex justify-center">
+      <div className="flex justify-center py-2">
         {callStatus !== CallStatus.ACTIVE ? (
           <Button
             onClick={handleCall}
-            disabled={callStatus === CallStatus.CONNECTING}
+            disabled={
+              callStatus === CallStatus.CONNECTING || generateInterviewLoading
+            }
             size="lg"
             className={cn(
               "relative px-8 py-6 text-lg font-semibold rounded-full transition-all duration-300",
