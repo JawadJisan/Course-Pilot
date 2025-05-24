@@ -1,5 +1,4 @@
-// components/Agent.tsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,9 +7,6 @@ import { Mic, MicOff, Phone, PhoneCall, User, Bot } from "lucide-react";
 import { vapi } from "@/lib/vapi.sdk";
 import { useRouter } from "next/navigation";
 import { interviewer } from "@/constants";
-import { useInterviewStore } from "@/lib/stores/interview.store";
-import { useFeedbackStore } from "@/lib/stores/feedback.store";
-import { toast } from "sonner";
 
 enum CallStatus {
   INACTIVE = "INACTIVE",
@@ -28,6 +24,9 @@ interface AgentProps {
   userName: string;
   userId?: string;
   interviewId?: string;
+  feedbackId?: string;
+  type: string;
+  questions?: string[];
   profileImage?: string;
   courseId?: string;
 }
@@ -36,12 +35,13 @@ const Agent = ({
   userName,
   userId,
   interviewId,
+  feedbackId,
+  type,
+  questions,
   profileImage = "/placeholder.svg",
   courseId,
 }: AgentProps) => {
   const router = useRouter();
-  const { generateInterview, currentInterview } = useInterviewStore();
-  const { generateFeedback } = useFeedbackStore();
 
   const [callStatus, setCallStatus] = useState<CallStatus>(CallStatus.INACTIVE);
   const [messages, setMessages] = useState<SavedMessage[]>([]);
@@ -49,31 +49,43 @@ const Agent = ({
   const [lastMessage, setLastMessage] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
 
+  // Enhanced error handler
   const handleError = (error: Error | string) => {
     console.error("Call Error:", error);
     setError(typeof error === "string" ? error : error.message);
     setCallStatus(CallStatus.INACTIVE);
-    vapi.stop();
-    toast.error("Interview Error", { description: error.toString() });
+    vapi.stop(); // Ensure clean stop
   };
 
   useEffect(() => {
-    const onCallStart = () => setCallStatus(CallStatus.ACTIVE);
-    const onCallEnd = () => setCallStatus(CallStatus.FINISHED);
-    const onMessage = (message: any) => {
+    const onCallStart = () => {
+      setCallStatus(CallStatus.ACTIVE);
+    };
+
+    const onCallEnd = () => {
+      setCallStatus(CallStatus.FINISHED);
+    };
+
+    const onMessage = (message) => {
       if (message.type === "transcript" && message.transcriptType === "final") {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: message.role,
-            content: message.transcript,
-          },
-        ]);
+        const newMessage = { role: message.role, content: message.transcript };
+        setMessages((prev) => [...prev, newMessage]);
       }
     };
-    const onSpeechStart = () => setIsSpeaking(true);
-    const onSpeechEnd = () => setIsSpeaking(false);
-    const onError = (error: Error) => handleError(error);
+
+    const onSpeechStart = () => {
+      console.log("speech start");
+      setIsSpeaking(true);
+    };
+
+    const onSpeechEnd = () => {
+      console.log("speech end");
+      setIsSpeaking(false);
+    };
+
+    const onError = (error: Error) => {
+      handleError(error);
+    };
 
     vapi.on("call-start", onCallStart);
     vapi.on("call-end", onCallEnd);
@@ -92,91 +104,129 @@ const Agent = ({
     };
   }, []);
 
+  console.log("messages:", messages);
+
   useEffect(() => {
     if (messages.length > 0) {
       setLastMessage(messages[messages.length - 1].content);
     }
-  }, [messages]);
 
-  useEffect(() => {
-    const handleFinishInterview = async () => {
-      if (callStatus === CallStatus.FINISHED && currentInterview?.id) {
-        console.log("interview finshed");
-        console.log("transcript messages:", messages);
-        console.log("type of messages:", typeof messages);
+    const handleGenerateFeedback = async (messages: SavedMessage[]) => {
+      console.log("handleGenerateFeedback section triggered");
+      console.log("messages:", messages);
+      console.log("feedbackId:", feedbackId);
+      //   const { success, feedbackId: id } = await createFeedback({
+      //     interviewId: interviewId!,
+      //     userId: userId!,
+      //     transcript: messages,
+      //     feedbackId,
+      //   });
 
-        // Convert messages to plain JavaScript array
-        const transcript = messages.map((msg) => ({
-          role: msg.role,
-          content: msg.content,
-        }));
-
-        console.log("Submitting transcript:", {
-          interviewId: currentInterview.id,
-          transcript: transcript,
-        });
-
-        try {
-          const feedbackRes = await generateFeedback({
-            interviewId: currentInterview.id,
-            transcript: transcript,
-          });
-
-          router.push(
-            `/interviews/${courseId}/feedback/${feedbackRes.id}`
-          );
-        } catch (error) {
-          handleError(
-            error instanceof Error
-              ? error
-              : new Error("Feedback generation failed")
-          );
-        }
-      }
+      //   if (success && id) {
+      //     router.push(`/interview/${interviewId}/feedback`);
+      //   } else {
+      //     console.log("Error saving feedback");
+      //     router.push("/");
+      //   }
     };
 
-    handleFinishInterview();
-  }, [callStatus, currentInterview?.id, courseId, router, messages]);
+    if (callStatus === CallStatus.FINISHED) {
+      // if (type === "generate") {
+      //   // router.push("/");
+      // } else {
+      //   handleGenerateFeedback(messages);
+      // }
+      handleGenerateFeedback(messages);
+    }
+  }, [messages, callStatus, feedbackId, interviewId, router, type, userId]);
+
+  // const handleCall = async () => {
+  //   try {
+  //     setCallStatus(CallStatus.CONNECTING);
+  //     setError(null);
+
+  //     // Generate interview questions
+  //     const generateResponse = await fetch("/api/interview/generate", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ courseid: courseId, userid: userId }),
+  //     });
+
+  //     if (!generateResponse.ok) throw new Error("Failed to generate questions");
+
+  //     const { data: interview } = await generateResponse.json();
+
+  //     // Start interview with generated questions
+  //     const formattedQuestions = interview.questions
+  //       .map((q: string) => `- ${q}`)
+  //       .join("\n");
+
+  //     await vapi.start(interviewer, {
+  //       variableValues: { questions: formattedQuestions },
+  //       clientMessages: [],
+  //       serverMessages: [],
+  //     });
+  //   } catch (error) {
+  //     handleError(error instanceof Error ? error : new Error("Call failed"));
+  //   }
+  // };
 
   const handleCall = async () => {
     try {
       setCallStatus(CallStatus.CONNECTING);
       setError(null);
 
-      if (!courseId || !userId) {
-        throw new Error("Missing required parameters");
-      }
+      // Mock data for testing
+      const mockQuestions = [
+        "Explain the difference between props and state in React",
+        "What is the purpose of useEffect hook?",
+        "How would you optimize performance in a React application?",
+      ];
 
-      const interview = await generateInterview(courseId);
+      const mockCourseName = "Advanced React Development";
+      const mockUserName = "John Doe";
 
-      if (!interview?.questions) {
-        toast.error("Failed to generate interview questions");
-      }
+      // Simulate API response
+      const mockInterview = {
+        id: "mock-interview-123",
+        questions: mockQuestions,
+        courseName: mockCourseName,
+        userName: mockUserName,
+      };
 
-      const formattedQuestions = interview.questions
+      // Format questions for the assistant
+      const formattedQuestions = mockInterview.questions
         .map((q: string) => `- ${q}`)
         .join("\n");
 
+      // Start interview with mock data
       await vapi.start(interviewer, {
         variableValues: {
           questions: formattedQuestions,
-          userName: userName,
-          courseName: interview.courseName || "This Course",
+          userName: mockInterview.userName,
+          courseName: mockInterview.courseName,
         },
         clientMessages: ["transcript"],
         serverMessages: [],
       });
+
+      console.log("Mock interview started with:", {
+        course: mockCourseName,
+        user: mockUserName,
+        questions: mockQuestions,
+      });
     } catch (error) {
-      handleError(error instanceof Error ? error : new Error("Call failed"));
+      handleError(
+        error instanceof Error ? error : new Error("Mock call failed")
+      );
     }
   };
-
-  console.log("currentInterview:", currentInterview);
 
   const handleDisconnect = () => {
     try {
       setCallStatus(CallStatus.FINISHED);
       vapi.stop();
+      setTimeout(() => setCallStatus(CallStatus.INACTIVE), 3000);
     } catch (error) {
       handleError(
         error instanceof Error ? error : new Error("Disconnect error")
@@ -187,9 +237,13 @@ const Agent = ({
   const getStatusBadge = () => {
     switch (callStatus) {
       case CallStatus.CONNECTING:
-        return <Badge variant="secondary">Connecting...</Badge>;
+        return (
+          <Badge variant="secondary" className="animate-pulse">
+            Connecting...
+          </Badge>
+        );
       case CallStatus.ACTIVE:
-        return <Badge className="bg-green-500">Live</Badge>;
+        return <Badge className="bg-green-500 hover:bg-green-600">Live</Badge>;
       case CallStatus.FINISHED:
         return <Badge variant="destructive">Call Ended</Badge>;
       default:

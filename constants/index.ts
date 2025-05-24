@@ -97,7 +97,7 @@ export const mappings = {
   "aws amplify": "amplify",
 };
 
-export const interviewer: CreateAssistantDTO = {
+export const interviewers: CreateAssistantDTO = {
   name: "Interviewer",
   firstMessage:
     "Hello! Thank you for taking the time to speak with me today. I'm excited to learn more about you and your experience.",
@@ -153,6 +153,61 @@ End the conversation on a polite and positive note.
       },
     ],
   },
+  clientMessages: [],
+  serverMessages: [],
+};
+
+export const interviewer: CreateAssistantDTO = {
+  name: "Interviewer",
+  firstMessage:
+    "Hello {{userName}}! Thank you for taking the time to speak with me today about the {{courseName}} position. I'm excited to learn more about your experience and qualifications.",
+  transcriber: {
+    provider: "deepgram",
+    model: "nova-2",
+    language: "en",
+  },
+  voice: {
+    provider: "11labs",
+    voiceId: "sarah",
+    stability: 0.4,
+    similarityBoost: 0.8,
+    speed: 0.9,
+    style: 0.5,
+    useSpeakerBoost: true,
+  },
+  model: {
+    provider: "openai",
+    model: "gpt-4",
+    messages: [
+      {
+        role: "system",
+        content: `You are a professional interviewer conducting a real-time voice interview for {{courseName}} position. 
+        Candidate Name: {{userName}}
+
+        Interview Guidelines:
+        1. Position Context: This interview is for the {{courseName}} role. Keep this in mind throughout the conversation
+        2. Question Flow:
+        {{questions}}
+
+        3. Engagement Rules:
+        - Address candidate as {{userName}} when appropriate
+        - Relate follow-up questions to {{courseName}} requirements
+        - Acknowledge relevant experience related to {{courseName}}
+        
+        4. Communication Style:
+        - Professional but welcoming tone
+        - Concise, voice-optimized responses (30-50 words)
+        - Natural conversational flow
+        
+        5. Special Instructions:
+        - Begin by confirming candidate's identity: "Could you please confirm you're {{userName}}?"
+        - End with course-specific next steps
+        - Maintain focus on {{courseName}} competencies throughout`,
+      },
+    ],
+  },
+  clientMessages: [],
+  serverMessages: [],
 };
 
 export const feedbackSchema = z.object({
