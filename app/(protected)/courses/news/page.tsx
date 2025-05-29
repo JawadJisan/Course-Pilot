@@ -34,25 +34,28 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import RichTextEditor from "./rich-text-editor";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import dynamic from "next/dynamic";
+import RichTextEditor from "@/components/rich-text-editor";
 
 // Rich text editor
-const RichTextEditorComponent = dynamic(() => import("./rich-text-editor"), {
-  ssr: false,
-  loading: () => (
-    <div className="min-h-[200px] rounded-md border border-input bg-muted/20 p-4">
-      <Skeleton className="h-4 w-2/3 mb-2" />
-      <Skeleton className="h-4 w-1/2 mb-2" />
-      <Skeleton className="h-4 w-3/4" />
-    </div>
-  ),
-});
+const RichTextEditorComponent = dynamic(
+  () => import("@/components/rich-text-editor"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-[200px] rounded-md border border-input bg-muted/20 p-4">
+        <Skeleton className="h-4 w-2/3 mb-2" />
+        <Skeleton className="h-4 w-1/2 mb-2" />
+        <Skeleton className="h-4 w-3/4" />
+      </div>
+    ),
+  }
+);
 
 // Zod schema for course data
 const ResourceSchema = z.object({

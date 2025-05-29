@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { useToast } from "@/hooks/use-toast"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { useToast } from "@/hooks/use-toast";
 import {
   ChevronLeft,
   Calendar,
@@ -18,12 +18,12 @@ import {
   XCircle,
   AlertCircle,
   ArrowUpRight,
-} from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,8 +32,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Progress } from "@/components/ui/progress"
+} from "@/components/ui/dropdown-menu";
+import { Progress } from "@/components/ui/progress";
+import { useInterviewStore } from "@/lib/stores/interview.store";
 
 // Mock data - would be fetched from API in a real application
 const mockInterviews = {
@@ -46,7 +47,8 @@ const mockInterviews = {
       time: "2:00 PM",
       duration: "45 minutes",
       status: "scheduled",
-      description: "Technical interview covering React, Node.js, and database concepts",
+      description:
+        "Technical interview covering React, Node.js, and database concepts",
     },
     {
       id: "int-2",
@@ -56,7 +58,8 @@ const mockInterviews = {
       time: "10:30 AM",
       duration: "30 minutes",
       status: "scheduled",
-      description: "Interview focusing on TypeScript generics, utility types, and advanced patterns",
+      description:
+        "Interview focusing on TypeScript generics, utility types, and advanced patterns",
     },
   ],
   past: [
@@ -69,7 +72,8 @@ const mockInterviews = {
       duration: "40 minutes",
       status: "completed",
       score: 92,
-      feedback: "Excellent understanding of React hooks. Could improve on custom hooks implementation.",
+      feedback:
+        "Excellent understanding of React hooks. Could improve on custom hooks implementation.",
     },
     {
       id: "int-4",
@@ -91,7 +95,8 @@ const mockInterviews = {
       duration: "30 minutes",
       status: "completed",
       score: 95,
-      feedback: "Outstanding knowledge of layout techniques. Perfect score on responsive design section.",
+      feedback:
+        "Outstanding knowledge of layout techniques. Perfect score on responsive design section.",
     },
     {
       id: "int-6",
@@ -104,76 +109,100 @@ const mockInterviews = {
       feedback: "Interview was missed. Please reschedule.",
     },
   ],
-}
+};
 
 export default function InterviewsPage() {
-  const { toast } = useToast()
-  const [searchQuery, setSearchQuery] = useState("")
-  const [filterStatus, setFilterStatus] = useState("all")
+  const { fetchUserInterviews, interviews } = useInterviewStore();
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   // Filter past interviews based on search query and status
   const filteredPastInterviews = mockInterviews.past.filter((interview) => {
-    const matchesSearch = interview.courseTitle.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = filterStatus === "all" || interview.status === filterStatus
-    return matchesSearch && matchesStatus
-  })
+    const matchesSearch = interview.courseTitle
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    const matchesStatus =
+      filterStatus === "all" || interview.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
 
   const handleReschedule = (id: string, title: string) => {
     toast({
       title: "Interview rescheduled",
       description: `Your ${title} interview has been rescheduled`,
-    })
-  }
+    });
+  };
 
   const handleCancel = (id: string, title: string) => {
     toast({
       title: "Interview cancelled",
       description: `Your ${title} interview has been cancelled`,
       variant: "destructive",
-    })
-  }
+    });
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "scheduled":
         return (
-          <Badge variant="outline" className="bg-blue-500/10 text-blue-500 border-blue-500/20">
+          <Badge
+            variant="outline"
+            className="bg-blue-500/10 text-blue-500 border-blue-500/20"
+          >
             <Calendar className="h-3 w-3 mr-1" />
             Scheduled
           </Badge>
-        )
+        );
       case "completed":
         return (
-          <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">
+          <Badge
+            variant="outline"
+            className="bg-green-500/10 text-green-500 border-green-500/20"
+          >
             <CheckCircle2 className="h-3 w-3 mr-1" />
             Completed
           </Badge>
-        )
+        );
       case "missed":
         return (
-          <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20">
+          <Badge
+            variant="outline"
+            className="bg-red-500/10 text-red-500 border-red-500/20"
+          >
             <XCircle className="h-3 w-3 mr-1" />
             Missed
           </Badge>
-        )
+        );
       case "cancelled":
         return (
-          <Badge variant="outline" className="bg-orange-500/10 text-orange-500 border-orange-500/20">
+          <Badge
+            variant="outline"
+            className="bg-orange-500/10 text-orange-500 border-orange-500/20"
+          >
             <AlertCircle className="h-3 w-3 mr-1" />
             Cancelled
           </Badge>
-        )
+        );
       default:
-        return null
+        return null;
     }
-  }
+  };
+
+  useEffect(() => {
+    fetchUserInterviews();
+  }, []);
+  console.log("All interviews:", interviews);
 
   return (
     <div className="container max-w-7xl mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
           <div className="flex items-center gap-2 mb-2">
-            <Link href="/dashboard" className="text-muted-foreground hover:text-foreground transition-colors">
+            <Link
+              href="/dashboard"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
               <Button variant="ghost" size="sm" className="gap-1 p-0 h-auto">
                 <ChevronLeft className="h-4 w-4" />
                 Dashboard
@@ -181,7 +210,9 @@ export default function InterviewsPage() {
             </Link>
           </div>
           <h1 className="text-3xl font-bold tracking-tight">Interviews</h1>
-          <p className="text-muted-foreground mt-1">Schedule and manage your interview sessions</p>
+          <p className="text-muted-foreground mt-1">
+            Schedule and manage your interview sessions
+          </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-2">
@@ -239,10 +270,14 @@ export default function InterviewsPage() {
                       </div>
                       <div className="flex-1">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                          <h3 className="text-xl font-semibold">{interview.courseTitle} Interview</h3>
+                          <h3 className="text-xl font-semibold">
+                            {interview.courseTitle} Interview
+                          </h3>
                           {getStatusBadge(interview.status)}
                         </div>
-                        <p className="text-muted-foreground mb-4">{interview.description}</p>
+                        <p className="text-muted-foreground mb-4">
+                          {interview.description}
+                        </p>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                           <div className="flex items-center gap-2">
                             <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -263,14 +298,21 @@ export default function InterviewsPage() {
                           </Link>
                           <Button
                             variant="outline"
-                            onClick={() => handleReschedule(interview.id, interview.courseTitle)}
+                            onClick={() =>
+                              handleReschedule(
+                                interview.id,
+                                interview.courseTitle
+                              )
+                            }
                           >
                             Reschedule
                           </Button>
                           <Button
                             variant="outline"
                             className="text-destructive hover:text-destructive"
-                            onClick={() => handleCancel(interview.id, interview.courseTitle)}
+                            onClick={() =>
+                              handleCancel(interview.id, interview.courseTitle)
+                            }
                           >
                             Cancel
                           </Button>
@@ -286,9 +328,12 @@ export default function InterviewsPage() {
               <div className="bg-muted/30 p-4 rounded-full mb-4">
                 <Calendar className="h-12 w-12 text-muted-foreground" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">No upcoming interviews</h3>
+              <h3 className="text-xl font-semibold mb-2">
+                No upcoming interviews
+              </h3>
               <p className="text-muted-foreground max-w-md mb-6">
-                You don't have any interviews scheduled. Schedule an interview to practice your skills.
+                You don't have any interviews scheduled. Schedule an interview
+                to practice your skills.
               </p>
               <Link href="/interviews/new">
                 <Button>Schedule Interview</Button>
@@ -313,19 +358,43 @@ export default function InterviewsPage() {
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
                   <DropdownMenuItem onClick={() => setFilterStatus("all")}>
-                    <span className={filterStatus === "all" ? "font-medium" : ""}>All Interviews</span>
+                    <span
+                      className={filterStatus === "all" ? "font-medium" : ""}
+                    >
+                      All Interviews
+                    </span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setFilterStatus("completed")}>
+                  <DropdownMenuItem
+                    onClick={() => setFilterStatus("completed")}
+                  >
                     <CheckCircle2 className="h-4 w-4 mr-2 text-green-500" />
-                    <span className={filterStatus === "completed" ? "font-medium" : ""}>Completed</span>
+                    <span
+                      className={
+                        filterStatus === "completed" ? "font-medium" : ""
+                      }
+                    >
+                      Completed
+                    </span>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setFilterStatus("missed")}>
                     <XCircle className="h-4 w-4 mr-2 text-red-500" />
-                    <span className={filterStatus === "missed" ? "font-medium" : ""}>Missed</span>
+                    <span
+                      className={filterStatus === "missed" ? "font-medium" : ""}
+                    >
+                      Missed
+                    </span>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setFilterStatus("cancelled")}>
+                  <DropdownMenuItem
+                    onClick={() => setFilterStatus("cancelled")}
+                  >
                     <AlertCircle className="h-4 w-4 mr-2 text-orange-500" />
-                    <span className={filterStatus === "cancelled" ? "font-medium" : ""}>Cancelled</span>
+                    <span
+                      className={
+                        filterStatus === "cancelled" ? "font-medium" : ""
+                      }
+                    >
+                      Cancelled
+                    </span>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
@@ -349,7 +418,9 @@ export default function InterviewsPage() {
                       </div>
                       <div className="flex-1">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                          <h3 className="text-xl font-semibold">{interview.courseTitle} Interview</h3>
+                          <h3 className="text-xl font-semibold">
+                            {interview.courseTitle} Interview
+                          </h3>
                           {getStatusBadge(interview.status)}
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
@@ -371,8 +442,12 @@ export default function InterviewsPage() {
                           <>
                             <div className="mb-4">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm font-medium">Score</span>
-                                <span className="text-sm">{interview.score}/100</span>
+                                <span className="text-sm font-medium">
+                                  Score
+                                </span>
+                                <span className="text-sm">
+                                  {interview.score}/100
+                                </span>
                               </div>
                               <Progress
                                 value={interview.score}
@@ -381,14 +456,18 @@ export default function InterviewsPage() {
                                   interview.score >= 90
                                     ? "bg-green-500"
                                     : interview.score >= 70
-                                      ? "bg-yellow-500"
-                                      : "bg-red-500"
+                                    ? "bg-yellow-500"
+                                    : "bg-red-500"
                                 }
                               />
                             </div>
                             <div className="mb-4">
-                              <h4 className="text-sm font-medium mb-1">Feedback</h4>
-                              <p className="text-sm text-muted-foreground">{interview.feedback}</p>
+                              <h4 className="text-sm font-medium mb-1">
+                                Feedback
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {interview.feedback}
+                              </p>
                             </div>
                           </>
                         )}
@@ -402,7 +481,14 @@ export default function InterviewsPage() {
                               </Button>
                             </Link>
                           ) : interview.status === "missed" ? (
-                            <Button onClick={() => handleReschedule(interview.id, interview.courseTitle)}>
+                            <Button
+                              onClick={() =>
+                                handleReschedule(
+                                  interview.id,
+                                  interview.courseTitle
+                                )
+                              }
+                            >
                               Reschedule Interview
                             </Button>
                           ) : null}
@@ -418,7 +504,9 @@ export default function InterviewsPage() {
               <div className="bg-muted/30 p-4 rounded-full mb-4">
                 <BarChart className="h-12 w-12 text-muted-foreground" />
               </div>
-              <h3 className="text-xl font-semibold mb-2">No past interviews found</h3>
+              <h3 className="text-xl font-semibold mb-2">
+                No past interviews found
+              </h3>
               <p className="text-muted-foreground max-w-md mb-6">
                 {searchQuery
                   ? `No interviews matching "${searchQuery}"`
@@ -432,5 +520,5 @@ export default function InterviewsPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
