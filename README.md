@@ -354,7 +354,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 <div align="center">
-  <p>Built with ❤️ by the Course-Pilot Team</p>
+  <p>Develop By Jawad Jisan</p>
   <p>
     <a href="#table">Back to Top</a>
   </p>
